@@ -1,3 +1,11 @@
 fn main() {
-    println!("Hello, rust!");
+    println!("Hello, Rust!");
+}
+
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn test_basic() {
+        assert_eq!(2 + 2, 4);
+    }
 }
