@@ -1,5 +1,5 @@
 fn main() {
-    println!("Hello, Rust boy!");
+    println!("Hello, Rust girl!");
 }
 
 #[cfg(test)]
