@@ -1,3 +1,4 @@
+use crate::opts::OutputFormat;
 use anyhow::Result;
 use csv::Reader;
 use serde::{Deserialize, Serialize};
@@ -5,6 +6,7 @@ use std::fs;
 
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "PascalCase")]
+#[allow(dead_code)]
 struct Player {
     name: String,
     position: String,
@@ -14,15 +16,25 @@ struct Player {
     #[serde(rename = "Kit Number")]
     kit_number: u8,
 }
-pub fn process_csv(input: &str, output: &str) -> Result<()> {
+
+pub fn process_csv(input: &str, output: String, format: OutputFormat) -> Result<()> {
     let mut reader = Reader::from_path(input)?;
     let mut ret = Vec::with_capacity(128);
-    for result in reader.deserialize() {
-        let record: Player = result?;
-        ret.push(record);
+    let headers = reader.headers()?.clone();
+    for result in reader.records() {
+        let record = result?;
+        let json_value = headers
+            .iter()
+            .zip(record.iter())
+            .collect::<serde_json::Value>();
+
+        ret.push(json_value);
     }
-    let json = serde_json::to_string_pretty(&ret)?;
-    fs::write(output, json)?;
+    let content = match format {
+        OutputFormat::Json => serde_json::to_string_pretty(&ret)?,
+        OutputFormat::Yaml => serde_yaml::to_string(&ret)?,
+    };
+    fs::write(output, content)?;
     Ok(())
 }
 
@@ -31,11 +43,13 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_process_csv() {
-        let result = process_csv("assets/juventus.csv", "output_test.json");
+    fn test_process_csv_json() {
+        let result = process_csv(
+            "assets/juventus.csv",
+            "output_test.json".to_string(),
+            OutputFormat::Json,
+        );
         assert!(result.is_ok());
-
-        // 清理测试文件
-        let _ = std::fs::remove_file("output_test.json");
+        std::fs::remove_file("output_test.json").ok();
     }
 }
